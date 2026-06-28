@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bíblia Ensina — NWT</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1a56db;--blue-dark:#1447b2;--bg:#f5f7fa;--surface:#fff;--text:#111827;--muted:#6b7280;--border:#e5e7eb}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+.view{display:none;height:100dvh;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+.top-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px 10px;flex-shrink:0}
+.top-bar h1{font-size:20px;font-weight:700;text-align:center}
+.tab-bar{display:flex;background:#f0f0f0;border-radius:10px;padding:3px;margin:10px auto 0;max-width:320px}
+.tab-btn{flex:1;padding:8px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);font-family:inherit}
+.tab-btn.active{background:var(--surface);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.scroll-area{flex:1;overflow-y:auto;padding:12px 14px 60px;-webkit-overflow-scrolling:touch}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.book-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.book-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 2px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:42px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:inherit;line-height:1.2;transition:transform .1s}
+.book-btn:active{background:var(--blue-dark);transform:scale(.92)}
+#view-chapters .top-bar{display:flex;align-items:center;gap:10px}
+.back-btn{background:none;border:none;cursor:pointer;color:var(--blue);display:flex;align-items:center;padding:4px;flex-shrink:0}
+.view-title{font-size:18px;font-weight:700}
+chapter-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.ch-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 4px;font-size:15px;font-weight:700;cursor:pointer;min-height:46px;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:transform .1s}
+.ch-btn:active{background:var(--blue-dark);transform:scale(.92)}
+#view-page .top-bar{display:flex;align-items:center;gap:10px}
+.canvas-area{flex:1;overflow-y:auto;background:#525659;display:flex;flex-direction:column;align-items:center;-webkit-overflow-scrolling:touch}
+#pdf-canvas{width:100%;max-width:700px;display:block}
+.page-nav{display:flex;gap:8px;padding:8px 14px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;justify-content:space-between;align-items:center}
+.nav-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit}
+.nav-btn:disabled{background:#d1d5db;cursor:default}
+.nav-btn:active:not(:disabled){background:var(--blue-dark)}
+.page-info{font-size:12px;color:var(--muted);text-align:center;flex:1;line-height:1.4}
+.loader{width:40px;height:40px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:80px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+#view-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;height:100dvh;background:var(--bg)}
+.upload-icon{font-size:64px;margin-bottom:16px}
+.upload-title{font-size:22px;font-weight:700;margin-bottom:8px}
+.upload-sub{font-size:15px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.upload-btn{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:16px 32px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;max-width:300px}
+.upload-btn:active{background:var(--blue-dark)}
+#file-input{display:none}
+.upload-note{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6}
+.progress-wrap{width:100%;max-width:300px;margin-top:24px}
+.progress-bar{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;width:0%;transition:width .3s}
+.progress-text{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+@media(min-width:400px){.book-grid,.chapter-grid{grid-template-columns:repeat(7,1fr)}}
+</style>
+</head>
+<body>
+<!-- UPLOAD -->
+<div id="view-upload" class="active" style="display:flex">
+  <div class="upload-icon">📖</div>
+  <div class="upload-title">Bíblia Ensina</div>
+  <div class="upload-sub">Selecione o arquivo<br><strong>Bíblia.pdf</strong><br>do seu celular</div>
+  <button class="upload-btn" onclick="document.getElementById('file-input').click()">📂 Selecionar PDF</button>
+  <input type="file" id="file-input" accept="application/pdf" onchange="loadPDF(this)">
+  <div class="progress-wrap" id="pw" style="display:none">
+    <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
+    <div class="progress-text" id="pt">Carregando...</div>
+  </div>
+  <div class="upload-note">O arquivo fica só no seu dispositivo.<br>Nenhum dado vai para a internet.</div>
+</div>
+
+<!-- LIVROS -->
+<div id="view-books" class="view">
+  <div class="top-bar">
+    <h1>Bíblia Ensina</h1>
+    <div class="tab-bar">
+      <button class="tab-btn">20 Perguntas</button>
+      <button class="tab-btn active">Livros da Bíblia</button>
+    </div>
+  </div>
+  <div class="scroll-area">
+    <p class="section-label">Escrituras Hebraico-Aramaicas</p>
+    <div class="book-grid" id="grid-ot"></div>
+    <p class="section-label" style="margin-top:18px">Escrituras Gregas Cristãs</p>
+    <div class="book-grid" id="grid-nt"></div>
+  </div>
+</div>
+!-- CAPÍTULOS -->
+<div id="view-chapters" class="view">
+  <div class="top-bar">
+    <button class="back-btn" onclick="show('view-books')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <span class="view-title" id="ch-title"></span>
+  </div>
+  <div class="scroll-area">
+    <div class="chapter-grid" id="chapter-grid"></div>
+  </div>
+</div>
+
+<!-- PÁGINA PDF -->
+<div id="view-page" class="view">
+  <div class="top-bar">
+    <button class="back-btn" onclick="show('view-chapters')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <span class="view-title" id="page-title"></span>
+  </div>
+  <div class="canvas-area" id="canvas-area"><div class="loader"></div></div>
+  <div class="page-nav">
+    <button class="nav-btn" id="btn-prev" onclick="changePage(-1)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Ant.
+    </button>
+    <span class="page-info" id="page-info"></span>
+    <button class="nav-btn" id="btn-next" onclick="changePage(1)">
+      Próx. <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+</div>
+<script src="data1.js"></script>
+<script src="data2.js"></script>
+<script src="data3.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// Mescla os 3 dicionários de capítulos
+const CP = Object.assign({}, window.CP1, window.CP2, window.CP3);
+
+const OT=[{n:'Gênesis',a:'Gên'},{n:'Êxodo',a:'Êx'},{n:'Levítico',a:'Le'},{n:'Números',a:'Núm'},{n:'Deuteronômio',a:'De'},{n:'Josué',a:'Jos'},{n:'Juízes',a:'Jui'},{n:'Rute',a:'Rut'},{n:'1 Samuel',a:'1Sa'},{n:'2 Samuel',a:'2Sa'},{n:'1 Reis',a:'1Re'},{n:'2 Reis',a:'2Re'},{n:'1 Crônicas',a:'1Cr'},{n:'2 Crônicas',a:'2Cr'},{n:'Esdras',a:'Esd'},{n:'Neemias',a:'Ne'},{n:'Ester',a:'Est'},{n:'Jó',a:'Jó'},{n:'Salmos',a:'Sal'},{n:'Provérbios',a:'Pro'},{n:'Eclesiastes',a:'Ec'},{n:'Cantares',a:'Cân'},{n:'Isaías',a:'Isa'},{n:'Jeremias',a:'Jer'},{n:'Lamentações',a:'Lam'},{n:'Ezequiel',a:'Eze'},{n:'Daniel',a:'Dan'},{n:'Oseias',a:'Os'},{n:'Joel',a:'Jl'},{n:'Amós',a:'Am'},{n:'Obadias',a:'Ob'},{n:'Jonas',a:'Jon'},{n:'Miqueias',a:'Mi'},{n:'Naum',a:'Na'},{n:'Habacuque',a:'Hab'},{n:'Sofonias',a:'Sof'},{n:'Ageu',a:'Ag'},{n:'Zacarias',a:'Za'},{n:'Malaquias',a:'Mal'}];
+const NT=[{n:'Mateus',a:'Mt'},{n:'Marcos',a:'Mr'},{n:'Lucas',a:'Lu'},{n:'João',a:'Jo'},{n:'Atos',a:'At'},{n:'Romanos',a:'Ro'},{n:'1 Coríntios',a:'1Co'},{n:'2 Coríntios',a:'2Co'},{n:'Gálatas',a:'Gá'},{n:'Efésios',a:'Ef'},{n:'Filipenses',a:'Fil'},{n:'Colossenses',a:'Col'},{n:'1 Tessalonicenses',a:'1Te'},{n:'2 Tessalonicenses',a:'2Te'},{n:'1 Timóteo',a:'1Ti'},{n:'2 Timóteo',a:'2Ti'},{n:'Tito',a:'Tit'},{n:'Filêmon',a:'Fm'},{n:'Hebreus',a:'Heb'},{n:'Tiago',a:'Tia'},{n:'1 Pedro',a:'1Pe'},{n:'2 Pedro',a:'2Pe'},{n:'1 João',a:'1Jo'},{n:'2 João',a:'2Jo'},{n:'3 João',a:'3Jo'},{n:'Judas',a:'Jud'},{n:'Apocalipse',a:'Ap'}];
+
+const TOTAL=1669;
+let pdfDoc=null,curPdfPage=1,rendering=false;
+const canvas=document.createElement('canvas');
+
+async function loadPDF(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('pw').style.display='block';
+  document.getElementById('pt').textContent='Lendo arquivo...';
+  try{
+    const buf=await file.arrayBuffer();
+    document.getElementById('pf').style.width='30%';
+    document.getElementById('pt').textContent='Carregando PDF...';
+    const task=pdfjsLib.getDocument({data:buf});
+    task.onProgress=p=>{if(p.total){const pct=Math.round(p.loaded/p.total*60)+30;document.getElementById('pf').style.width=pct+'%';}};
+    pdfDoc=await task.promise;
+    document.getElementById('pf').style.width='100%';
+    document.getElementById('pt').textContent='Pronto!';
+    setTimeout(()=>{document.getElementById('view-upload').style.display='none';show('view-books');},400);
+  }catch(e){document.getElementById('pt').textContent='❌ Erro. Tente novamente.';}
+}
+
+async function renderPage(n){
+  if(!pdfDoc||rendering)return;rendering=true;
+  const area=document.getElementById('canvas-area');
+  area.innerHTML='<div class="loader"></div>';
+  try{
+    const page=await pdfDoc.getPage(n);
+    const vw=Math.min(window.innerWidth,700);
+    const vp=page.getViewport({scale:1});
+    const sc=page.getViewport({scale:vw/vp.width});
+    canvas.width=sc.width;canvas.height=sc.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:sc}).promise;
+    area.innerHTML='';area.appendChild(canvas);area.scrollTop=0;
+  }catch(e){document.getElementById('canvas-area').innerHTML='<div style="color:#fca5a5;text-align:center;padding:40px 20px">Erro ao renderizar</div>';}
+  rendering=false;
+  document.getElementById('btn-prev').disabled=n<=1;
+  document.getElementById('btn-next').disabled=n>=TOTAL;
+  document.getElementById('page-info').textContent='Página '+n+' de '+TOTAL;
+}
+function changePage(d){const n=curPdfPage+d;if(n<1||n>TOTAL)return;curPdfPage=n;renderPage(n);}
+
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+function openBook(book){
+  document.getElementById('ch-title').textContent=book;
+  const chs=Object.keys(CP[book]).map(Number).sort((a,b)=>a-b);
+  const grid=document.getElementById('chapter-grid');
+  grid.innerHTML='';
+  chs.forEach(ch=>{const b=document.createElement('button');b.className='ch-btn';b.textContent=ch;b.onclick=()=>openChapter(book,ch);grid.appendChild(b);});
+  show('view-chapters');
+}
+
+function openChapter(book,ch){
+  curPdfPage=CP[book][String(ch)];
+  document.getElementById('page-title').textContent=book+' '+ch;
+  show('view-page');renderPage(curPdfPage);
+}
+
+function makeGrid(id,books){
+  const g=document.getElementById(id);
+  books.forEach(b=>{const btn=document.createElement('button');btn.className='book-btn';btn.textContent=b.a;btn.title=b.n;btn.onclick=()=>openBook(b.n);g.appendChild(btn);});
+}
+makeGrid('grid-ot',OT);makeGrid('grid-nt',NT);
+</script>
+</body>
+</html>
